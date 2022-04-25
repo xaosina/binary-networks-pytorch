@@ -18,7 +18,6 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-from imagenet_seq.data import ImagenetLoader
 from omegaconf import OmegaConf
 from nash_logging.common import LoggerUnited
 import webdataset as wds
