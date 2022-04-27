@@ -71,7 +71,7 @@ def run_experiment(model,get_loaders, target, ):
         log_training=True,
     )
 
-    trainer.set_model(model, {"main": model.parameters()})
+    trainer.set_model(model, {"main": filter(lambda p: p.requires_grad, model.parameters())})
     trainer.set_dataloaders(dataloaders)
     trainer.train()
     history = trainer.get_history()
