@@ -37,6 +37,9 @@ def save_source_files(config):
         py_files.extend(
             [y for x in os.walk(dw) for y in glob(os.path.join(x[0], "*.py"))]
         )
+        py_files.extend(
+            [y for x in os.walk(dw) for y in glob(os.path.join(x[0], "*.yaml"))]
+        )
     for pyf in py_files:
         src = pyf
         file_name = f'{pyf.replace(config.PROJECT.ROOT, "")}'

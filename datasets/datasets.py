@@ -7,10 +7,10 @@ import webdataset as wds
 
 
 class DictSet(Dataset):
-    def __init__(self, dataset):
+    def __init__(self, dataset, lenght=None):
 
         self.dataset = dataset
-        self.size = len(dataset)
+        self.size = len(dataset) if lenght is None else lenght
 
     def __getitem__(self, index):
         image, label = self.dataset.__getitem__(int(index))
@@ -77,8 +77,12 @@ def get_tiny_image_net(data_path='/home/dev/data_main/CORESETS/TinyImagenet/tiny
     return train_loader, val_loader
 
 
-def get_tiny_image_net_wds(data_path='/home/dev/data_main/CORESETS/TinyImagenet_wds', batch_size=32, workers=4):
-
+def get_imagenet_wds(data_path='/home/dev/data_main/CORESETS/TinyImagenet_wds', batch_size=32, workers=4):
+    lenghts = {
+        "/home/dev/data_main/CORESETS/TinyImagenet_wds": [100000, 5000],
+        "/home/dev/data_main/imagenet": [1281167, 50000] 
+    }
+    train_len, val_len = lenghts[data_path]
     # Data loading code
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
@@ -101,7 +105,8 @@ def get_tiny_image_net_wds(data_path='/home/dev/data_main/CORESETS/TinyImagenet_
         .decode("pil")
         .to_tuple("jpg", "cls")
         .map_tuple(transforms_train, lambda x: x)
-        .shuffle(1000)
+        .shuffle(1000),
+        lenght=train_len
     )
     # TODO pass correct number of shards
     url = data_path + "/imagenet-val-{000000..000000}.tar"
@@ -109,7 +114,8 @@ def get_tiny_image_net_wds(data_path='/home/dev/data_main/CORESETS/TinyImagenet_
         wds.WebDataset(url)
         .decode("pil")
         .to_tuple("jpg", "cls")
-        .map_tuple(transforms_val, lambda x: x)
+        .map_tuple(transforms_val, lambda x: x), 
+        lenght=val_len
     )
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=False,
