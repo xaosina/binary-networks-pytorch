@@ -1,3 +1,5 @@
+import datetime
+
 class AverageMeter:
     """Computes and stores the average and current value"""
 
@@ -38,3 +40,25 @@ class AverageMeter:
 
         if self.metric_type == "full":
             self.avg = self.metric.update(outputs, batch)
+
+class Timer:
+    def __init__(self, name):
+        self.name = name
+        self.reset()
+
+    def reset(self) -> None:
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val:float) -> None:
+        self.val = val
+        self.sum += val
+        self.count += 1
+        self.avg = self.sum / self.count
+
+    def __str__(self) -> str:
+        sum = str(datetime.timedelta(seconds=int(self.sum)))
+        fmtstr = f"{sum}"
+        return fmtstr

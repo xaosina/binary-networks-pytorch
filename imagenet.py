@@ -225,38 +225,38 @@ def main_worker(gpu, ngpus_per_node, args, logger):
         lr_scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=args.warmup, after_scheduler=lr_scheduler)
 
     # optionally resume from a checkpoint
-    if args.resume:
-        if os.path.isfile(args.resume):
+    if args.resume: # TODO new pipeline doesnt have that
+        if os.path.isfile(args.resume): # TODO new pipeline doesnt have that
             logger.log("=> loading checkpoint '{}'".format(args.resume))
             if args.gpu is None:
                 checkpoint = torch.load(args.resume)
             else:
                 # Map model to be loaded to specified single gpu.
                 loc = 'cuda:{}'.format(args.gpu)
-                checkpoint = torch.load(args.resume, map_location=loc)
+                checkpoint = torch.load(args.resume, map_location=loc) # TODO new pipeline doesnt have that
             if args.resume_epoch:
-                args.start_epoch = checkpoint['epoch']
+                args.start_epoch = checkpoint['epoch'] # TODO new pipeline doesnt have that
                 best_acc1 = checkpoint['best_acc1']
             if args.gpu is not None:
                 pass
                 # best_acc1 may be from a checkpoint from a different GPU
                 #best_acc1 = best_acc1.to(args.gpu)
             try:
-                model.load_state_dict(checkpoint['state_dict'])
+                model.load_state_dict(checkpoint['state_dict']) # TODO new pipeline doesnt have that
                 if not ('adam' in args.optimizer and 'sgd' in args.resume):
                     logger.log('=> Loading optimizer...')
                     #optimizer.load_state_dict(checkpoint['optimizer'])
             except:
-                logger.log('=> Warning: dict model mismatch, loading with strict = False')
+                logger.log('=> Warning: dict model mismatch, loading with strict = False') # TODO new pipeline doesnt have that
                 model.load_state_dict(checkpoint['state_dict'], strict=False)
             logger.log("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
         else:
             logger.log("=> no checkpoint found at '{}'".format(args.resume))
         
-        # Reset learning rate
+        # Reset learning rate # TODO new pipeline doesnt have that
         for g in optimizer.param_groups:
-            g['lr'] = args.lr
+            g['lr'] = args.lr # TODO new pipeline doesnt have that
         
 
     if args.start_epoch>0:
@@ -289,7 +289,7 @@ def main_worker(gpu, ngpus_per_node, args, logger):
         train_dataset = datasets.ImageFolder(
                     traindir,
                     transforms_train)
-        val_dataset = datasets.ImageFolder(valdir, transforms_val) #TODO Make an option whether to use or not sequential loader
+        val_dataset = datasets.ImageFolder(valdir, transforms_val) 
         if args.distributed:
             train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
         else:
@@ -362,14 +362,14 @@ def main_worker(gpu, ngpus_per_node, args, logger):
         
         logger.log('Current best: {}'.format(best_acc1))
 
-        if show_logs:
+        if show_logs: 
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
-                'state_dict': model.state_dict(),
+                'state_dict': model.state_dict(), 
                 'best_acc1': best_acc1,
                 'optimizer' : optimizer.state_dict(),
-            }, is_best, args.output_dir)
+            }, is_best, args.output_dir) 
 
 def train(train_loader, model, criterion, optimizer, epoch, args, logger):
     batch_time = AverageMeter('Time', ':6.3f', is_timer=True)
@@ -458,7 +458,7 @@ def validate(val_loader, model, criterion, args, logger):
             if i % args.print_freq == 0:
                 logger.log(progress.display(i))
 
-        # TODO: this should also be done with the ProgressMeter
+        
         logger.log(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1, top5=top5))
 
     return top1.avg

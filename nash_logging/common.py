@@ -3,6 +3,9 @@ from nash_logging.config import print_cfg, save_cfg
 from nash_logging.checkpoint import save_source_files
 from nash_logging.checkpoint import get_checkpoint_folder
 from nash_logging.tensorboard_utils import get_tensorboard_logger
+import torch
+import shutil
+import os
 
 online_loggers = {"tensorboard": get_tensorboard_logger}
 
@@ -26,7 +29,7 @@ class LoggerUnited:
         print_cfg(cfg)
         save_cfg(cfg)
         save_source_files(cfg)
-
+        self.checkpoint_folder = get_checkpoint_folder(cfg)
         return logger
 
     def log(self, message, type=None):
@@ -67,6 +70,14 @@ class LoggerUnited:
         if self.use_online:
             self.online_logger.log_metrics(tab, metrics, phase_idx)
 
+    def add_scalars(self, tab="Train", scalars={}, phase_idx=None):
+        if self.use_online:
+            self.online_logger.tb_writer.add_scalars(
+                f"{tab}",
+                scalars,
+                global_step=phase_idx,
+            )
+
     def add_histogramm(self, values=None, phase_idx=0, name="histogram"):
         if self.use_online:
             self.online_logger.add_histogramm(
@@ -84,3 +95,11 @@ class LoggerUnited:
     def add_images(self, tag, image):
         if self.use_online:
             self.online_logger.add_images(tag, image)
+
+    def save_checkpoint(self, state, is_best, filename='checkpoint.pth.tar'):
+        try:
+            torch.save(state, os.path.join(self.checkpoint_folder, filename))
+            if is_best:
+                shutil.copyfile(os.path.join(self.checkpoint_folder, filename), os.path.join(self.checkpoint_folder,'model_best.pth.tar'))
+        except:
+            print('Unable to save checkpoint to {} at this time...'.format(self.checkpoint_folder))

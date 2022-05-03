@@ -14,14 +14,14 @@ parser.add_argument("--splits", default="train,val", help="which splits to write
 parser.add_argument(
     "--filekey", action="store_true", help="use file as key (default: index)"
 )
-parser.add_argument("--maxsize", type=float, default=1e9)
-parser.add_argument("--maxcount", type=float, default=10000)
+parser.add_argument("--maxsize", type=float, default=1e11)
+parser.add_argument("--maxcount", type=float, default=130000)
 parser.add_argument(
-    "--shards", default="/home/dev/data_main/CORESETS/TinyImagenet_wds_more", help="directory where shards are written"
+    "--shards", default="/home/dev/data_main/imagenet_wds/", help="directory where shards are written"
 )
 parser.add_argument(
     "--data",
-    default="/home/dev/data_main/CORESETS/TinyImagenet/tiny-224",
+    default="/home/dev/data_main/imagenet/",
     help="directory containing ImageNet data distribution suitable for torchvision.datasets",
 )
 args = parser.parse_args()

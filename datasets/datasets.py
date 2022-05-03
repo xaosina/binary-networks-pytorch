@@ -1,16 +1,27 @@
 import os
 import torch
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset
+from torch.utils.data.dataset import Dataset, IterableDataset
 from torchvision import datasets, transforms
 import webdataset as wds
 
+
+class LengthSet(IterableDataset):
+    def __init__(self, dataset, lenght=None):
+        self.dataset = dataset
+        self.size = len(dataset) if lenght is None else lenght
+
+    def __len__(self):
+        return self.size
+    
+    def __iter__(self):
+        return ({"model_input": b["model_input"], "label": b["label"]} for b in iter(self.dataset))
 
 class DictSet(Dataset):
     def __init__(self, dataset, lenght=None):
 
         self.dataset = dataset
-        self.size = len(dataset) if lenght is None else lenght
+        self.size = len(dataset) 
 
     def __getitem__(self, index):
         image, label = self.dataset.__getitem__(int(index))
@@ -76,12 +87,24 @@ def get_tiny_image_net(data_path='/home/dev/data_main/CORESETS/TinyImagenet/tiny
 
     return train_loader, val_loader
 
-
-def get_imagenet_wds(data_path='/home/dev/data_main/CORESETS/TinyImagenet_wds', batch_size=32, workers=4):
+def get_wds_set(data_path='/home/dev/data_main/CORESETS/TinyImagenet_wds', batch_size=32, workers=4):
     lenghts = {
         "/home/dev/data_main/CORESETS/TinyImagenet_wds": [100000, 5000],
-        "/home/dev/data_main/imagenet": [1281167, 50000] 
+        "/home/dev/data_main/imagenet_shards": [1281167, 50000],
+        "/home/dev/data_main/imagenet_wds": [1281167, 50000] 
     }
+    urls = {
+        "/home/dev/data_main/CORESETS/TinyImagenet_wds": (
+            "/imagenet-train-{000000..000009}.tar", 
+            "/imagenet-val-{000000..000000}.tar"
+            ),
+        "/home/dev/data_main/imagenet_shards": (
+            "/imagenet-train-{000000..000146}.tar", 
+            "/imagenet-val-{000000..000006}.tar"
+        ),
+        "/home/dev/data_main/imagenet_wds": () #TODO pass urls
+    }
+
     train_len, val_len = lenghts[data_path]
     # Data loading code
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -98,23 +121,21 @@ def get_imagenet_wds(data_path='/home/dev/data_main/CORESETS/TinyImagenet_wds', 
         transforms.ToTensor(),
         normalize,
     ])
-    # TODO pass correct number of shards
-    url = data_path + "/imagenet-train-{000000..000009}.tar"
-    train_dataset = DictSet(
+    url = data_path + urls[data_path][0]
+    train_dataset = LengthSet(
         wds.WebDataset(url)
         .decode("pil")
-        .to_tuple("jpg", "cls")
-        .map_tuple(transforms_train, lambda x: x)
+        .rename(model_input="jpg", label="cls")
+        .map_dict(model_input=transforms_train, label=lambda x: torch.tensor(x))
         .shuffle(1000),
         lenght=train_len
     )
-    # TODO pass correct number of shards
-    url = data_path + "/imagenet-val-{000000..000000}.tar"
-    val_dataset = DictSet(
+    url = data_path + urls[data_path][1]
+    val_dataset = LengthSet(
         wds.WebDataset(url)
         .decode("pil")
-        .to_tuple("jpg", "cls")
-        .map_tuple(transforms_val, lambda x: x), 
+        .rename(model_input="jpg", label="cls")
+        .map_dict(model_input=transforms_val, label=lambda x: torch.tensor(x)), 
         lenght=val_len
     )
     train_loader = torch.utils.data.DataLoader(
@@ -126,4 +147,16 @@ def get_imagenet_wds(data_path='/home/dev/data_main/CORESETS/TinyImagenet_wds', 
         batch_size=batch_size, shuffle=False,
         num_workers=workers, pin_memory=True)
 
+    return train_loader, val_loader
+
+def get_tiny_imagenet_wds(batch_size=32, workers=4):
+    # "/home/dev/data_main/CORESETS/TinyImagenet_wds": [100000, 5000],
+    # "/home/dev/data_main/imagenet_fast": [1281167, 50000] 
+    train_loader, val_loader = get_wds_set("/home/dev/data_main/CORESETS/TinyImagenet_wds", batch_size, workers)
+    return train_loader, val_loader
+
+def get_imagenet_wds(batch_size=32, workers=4):
+    # "/home/dev/data_main/CORESETS/TinyImagenet_wds": [100000, 5000],
+    # "/home/dev/data_main/imagenet_fast": [1281167, 50000] 
+    train_loader, val_loader = get_wds_set("/home/dev/data_main/imagenet_fast", batch_size, workers)
     return train_loader, val_loader

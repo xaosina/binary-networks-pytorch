@@ -13,20 +13,20 @@ TENSORBOARD_SETUP:
   LOG_PARAMS_EVERY_N_ITERS: 1
 
 HARDWARE: 
-  GPU: 0
-  WORKERS: 20
+  GPU: 2
+  WORKERS: 10
   SEED: 1
 
 TRAINING:
-  epochs: 90
-  batch_size: 256
+  EPOCHS: 90
+  BATCH_SIZE: 256
 
 OPTIMIZER: 
   main:
     optimizer:
       - ADAM 
       - lr: 0.001
-        weight_decay: 0
+        # weight_decay: 0
     scheduler: 
       - cosine
       - 
@@ -35,9 +35,9 @@ OPTIMIZER:
 EXPERIMENT: 
   DIR: "/home/dev/data_main/LOGS/BNN/" # where to save data
 
-PARAMS:
-  # gpu: 2
-  data: /home/dev/data_main/imagenet_shards/
-  loader: wds
+# PARAMS:
+#   # gpu: 2
+#   data: /home/dev/data_main/imagenet_shards/
+#   loader: wds
   # batch_size: 256
   # workers: 20

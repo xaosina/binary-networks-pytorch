@@ -2,9 +2,11 @@ from re import L
 import time
 import torch
 
-from trainers.optimizers import OPT
+from trainers.optimizers import OPT, SCH
 from tqdm.autonotebook import tqdm
-from trainers.trainer_utils import AverageMeter
+from trainers.trainer_utils import AverageMeter, Timer
+from omegaconf import OmegaConf as omg
+from omegaconf.dictconfig import DictConfig 
 
 
 class Trainer:
@@ -30,6 +32,8 @@ class Trainer:
         self.init_metrics = metrics
         self.metrics = self._init_metrics_and_loss(metrics)  # DICT of metrics
         # TODO change to be a dictionary
+        if type(optimizers) == DictConfig:
+            optimizers = omg.to_container(optimizers)
         self.initial_optimizers = optimizers
         self.num_epochs = num_epochs
         self.device = device
@@ -44,8 +48,10 @@ class Trainer:
         # TODO: update optimizer prameters dict
         self.model = model
         self.model.to(self.device)
+        self._log(self.model)
         if param_groups == "default":
             param_groups = {"main": self.model.parameters()}
+        self._log("Use GPU: {} for training".format(self.device))
         self._init_optimizers(param_groups)
         self.metrics = self._init_metrics_and_loss(self.init_metrics)
 
@@ -53,14 +59,25 @@ class Trainer:
     # See method usage in Random searcher
     def _init_optimizers(self, param_groups: dict()):
         self.optimizers = dict()
+        self.schedulers = dict()
         if not isinstance(param_groups, dict):
             param_groups = self._dictify(param_groups, initial=["main"])
 
         # TODO check that keys in opt_groups match keys in self.initial_optimizers
         for opt_group in param_groups:
-            opt_name, opt_params = self.initial_optimizers[opt_group]
+            opt_name, opt_params = self.initial_optimizers[opt_group]["optimizer"]
+            sch_name, sch_params = self.initial_optimizers[opt_group]["scheduler"]
+            if opt_params is None:
+                opt_params = dict()
+            if sch_params is None:
+                sch_params = dict()
             opt_params["params_dict"] = param_groups[opt_group]
+            if sch_name == "cosine": 
+                print(sch_params)
+                sch_params["epochs"] = self.num_epochs
             self.optimizers[opt_group] = OPT[opt_name](**opt_params)
+            sch_params["optimizer"] = self.optimizers[opt_group]
+            self.schedulers[opt_group] = SCH[sch_name](**sch_params)
 
     # TODO Loaders should match training phases, add check
 
@@ -104,6 +121,25 @@ class Trainer:
             else:
                 method = getattr(self.optimizers, method_name)
                 method()
+
+    def _scheduler_step(self, phase):
+        if phase != "validation":
+            if isinstance(self.schedulers, dict):
+                if self.dataset_opt_link is None:
+                    for name in self.schedulers:
+                        method = self.schedulers[name].step
+                        method()
+                        self._log(f"New lr for group '{name}': {self.schedulers[name].get_last_lr()}")
+                else:
+                    name = self.dataset_opt_link[phase]
+                    method = self.schedulers[name].step
+                    method()
+                    self._log(f"New lr for group '{name}': {self.schedulers[name].get_last_lr()}")
+            else:
+                method = self.schedulers.step
+                method()
+                self._log(f"New lr: {self.schedulers.get_last_lr()}")
+
 
     def _log(self, message):
         if self.logging:
@@ -174,7 +210,7 @@ class Trainer:
                 f"{self.trainer_name }_train", metrics_train, epoch
             )
 
-    def _iterate_one_epoch(self, phase):
+    def _iterate_one_epoch(self, phase, epoch):
         # Each epoch has a training and validation phase
 
         if phase == "validation":
@@ -185,21 +221,44 @@ class Trainer:
         # Iterate over data.
 
         n_batches = len(self.dataloaders[phase])
-        for batch in tqdm(self.dataloaders[phase], total=n_batches):
-            batch = self._process_batch(batch)
-            # forward
-            # track history if only in train
-            with torch.set_grad_enabled(phase.startswith("train")):
-                outputs = self.model(batch["model_input"])
-                # TODO move metrics to cpu and keep loss on gpu
+        end = time.time()
+        data_time = Timer("Data")
+        batch_time = Timer("Time")
+        with tqdm(self.dataloaders[phase], total=n_batches) as t:
+            for batch in t:
+                data_time.update(time.time() - end)
+                batch = self._process_batch(batch)
+                # forward
+                # track history if only in train
+                with torch.set_grad_enabled(phase.startswith("train")):
+                    outputs = self.model(batch["model_input"])
+                    # TODO move metrics to cpu and keep loss on gpu
 
-                self._update_metrics(outputs, batch, phase)
+                    self._update_metrics(outputs, batch, phase)
 
-                # backward + optimize only if in training phase
-                if phase.startswith("train"):
-                    self.metrics[phase]["loss"].last_value.backward()
-                    self._opt_step(phase)
-                    self._opt_zero_grad(phase)
+                    # backward + optimize only if in training phase
+                    if phase.startswith("train"):
+                        self.metrics[phase]["loss"].last_value.backward()
+                        self._opt_step(phase)
+                        self._opt_zero_grad(phase)
+                batch_time.update(time.time() - end)
+                for_print = {
+                    batch_time.name: str(batch_time), 
+                    data_time.name: str(data_time)
+                }
+                for_print.update({
+                    k: "{:.3f}".format(self.metrics[phase][k].avg) for k in self.metrics[phase]
+                })
+                for_print = "|".join([" ".join([k, for_print[k]]) for k in for_print])
+                t.set_description(for_print)
+                end = time.time()
+        self._log(for_print)
+        for_board = {
+            batch_time.name: batch_time.sum, 
+            data_time.name: data_time.sum
+        }
+        self.logger.add_scalars(f"{phase} time", for_board, epoch)
+        self._scheduler_step(phase)
 
         # use as a dummy input to compute a graph
         self.last_batch = batch
@@ -218,19 +277,29 @@ class Trainer:
 
     def train(self):
         start_time = time.time()
+        best_acc = 0
         for epoch in range(self.num_epochs):
             self._log_arch(epoch)
             self._log_metrics(epoch)
             for phase in self.phases:
                 self.reset_metrics(phase)
                 self._log(" Epoch {}/{}".format(epoch, self.num_epochs - 1))
-                self._iterate_one_epoch(phase)
+                self._iterate_one_epoch(phase, epoch)
                 metrics = self.get_last_epoch_metrics(phase)
                 metric_string = " | ".join(
                     [f"{key}:{value:.3f}" for key, value in metrics.items()]
                 )
                 self._log(f"{phase.upper()} {metric_string}")
-
+                if phase == "validation": 
+                    state = {
+                        'epoch': epoch,
+                        'state_dict': self.model.state_dict(),
+                        'metric': metrics["accuracy"] if "accuracy" in metrics else 0,
+                    }
+                    is_best = state["metric"] >= best_acc
+                    best_acc = state["metric"] if state["metric"] >= best_acc else best_acc
+                    self.logger.save_checkpoint(state, is_best)
+                    
             if self.terminator_chek_if_nan_or_inf():
                 break
 
