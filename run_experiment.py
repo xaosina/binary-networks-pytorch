@@ -52,7 +52,6 @@ def run_experiment(model, get_loaders, target):
                       
     logger = LoggerUnited(new_conf, online_logger="tensorboard")
     logger.log(new_conf)
-    logger.log(model)
     logger.log('Num parameters: {}'.format(sum(p.numel() for p in model.parameters() if p.requires_grad)))
     
     train_loader, test_loader = get_loaders(workers=new_conf.HARDWARE.WORKERS,

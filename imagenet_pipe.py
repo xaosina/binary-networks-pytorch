@@ -15,7 +15,7 @@ from bnn.ops import (
     BasicScaleBinarizer,
 )
 
-model = models.__dict__["resnet18"](stem_type="basic", num_classes=200, block_type=models.PreBasicBlock, activation=nn.PReLU)
+model = models.__dict__["resnet18"](stem_type="basic", num_classes=1000, block_type=models.PreBasicBlock, activation=nn.PReLU)
 
 bconfig = BConfig(
     activation_pre_process=BasicInputBinarizer,
@@ -33,4 +33,4 @@ bconfig = BConfig(
 #     },
 # )
 target = "label"
-run_experiment(model, get_tiny_imagenet_wds, target)
+run_experiment(model, get_imagenet_wds, target)

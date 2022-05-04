@@ -102,7 +102,10 @@ def get_wds_set(data_path='/home/dev/data_main/CORESETS/TinyImagenet_wds', batch
             "/imagenet-train-{000000..000146}.tar", 
             "/imagenet-val-{000000..000006}.tar"
         ),
-        "/home/dev/data_main/imagenet_wds": () #TODO pass urls
+        "/home/dev/data_main/imagenet_wds": (
+            "/imagenet-train-{000000..000009}.tar", 
+            "/imagenet-val-{000000..000000}.tar"
+        ) 
     }
 
     train_len, val_len = lenghts[data_path]
@@ -158,5 +161,11 @@ def get_tiny_imagenet_wds(batch_size=32, workers=4):
 def get_imagenet_wds(batch_size=32, workers=4):
     # "/home/dev/data_main/CORESETS/TinyImagenet_wds": [100000, 5000],
     # "/home/dev/data_main/imagenet_fast": [1281167, 50000] 
-    train_loader, val_loader = get_wds_set("/home/dev/data_main/imagenet_fast", batch_size, workers)
+    train_loader, val_loader = get_wds_set("/home/dev/data_main/imagenet_shards", batch_size, workers)
+    return train_loader, val_loader
+
+def get_imagenet_wds_new(batch_size=32, workers=4):
+    # "/home/dev/data_main/CORESETS/TinyImagenet_wds": [100000, 5000],
+    # "/home/dev/data_main/imagenet_fast": [1281167, 50000] 
+    train_loader, val_loader = get_wds_set("/home/dev/data_main/imagenet_wds", batch_size, workers)
     return train_loader, val_loader
