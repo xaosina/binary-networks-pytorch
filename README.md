@@ -23,7 +23,7 @@
     
     3. then forward call is defiend as follows
     
-    forward(input: torch.Tensor) -> torch.Tensor:
+    forward(input):
         input = activation_pre_process(input)
         out = F(input, weight_pre_process(weights))
         return activation_post_process(out)
