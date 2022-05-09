@@ -8,6 +8,27 @@
 
 # Binary Neural Networks (BNN)
 
+
+## Schematic workflow
+
+```python
+
+    1. define methods
+    
+    activation_pre_process (eg.: sign(x))
+    weight_pre_process (eg.: sign(x))
+    activation_post_process (eg.: scale * x )
+    
+    2. define some operation F(x, weights)
+    
+    2. then forward call is defiend as following
+    
+    forward(input: torch.Tensor) -> torch.Tensor:
+        input = activation_pre_process(input)
+        out = F(input, weight_pre_process(weights))
+        return activation_post_process(out)
+```
+
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![PyPI](https://img.shields.io/pypi/v/bnn.svg?style=flat)](https://pypi.org/project/bnn/) [![Test BNN Python package](https://github.com/1adrianb/binary-networks-pytorch/actions/workflows/python-package.yml/badge.svg)](https://github.com/1adrianb/binary-networks-pytorch/actions/workflows/python-package.yml)
 
 BNN is a Pytorch based library that facilitates the binarization (i.e. 1 bit quantization) of neural networks.
