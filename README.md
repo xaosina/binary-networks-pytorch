@@ -1,3 +1,11 @@
+ISSUES:
+
+- Two model folders /  Need to merge
+- Need to test FLOPS counter
+
+
+
+
 # Binary Neural Networks (BNN)
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![PyPI](https://img.shields.io/pypi/v/bnn.svg?style=flat)](https://pypi.org/project/bnn/) [![Test BNN Python package](https://github.com/1adrianb/binary-networks-pytorch/actions/workflows/python-package.yml/badge.svg)](https://github.com/1adrianb/binary-networks-pytorch/actions/workflows/python-package.yml)
