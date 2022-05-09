@@ -15,9 +15,9 @@
 
     1. define methods
     
-    activation_pre_process (eg.: sign(x))
-    weight_pre_process (eg.: sign(x))
-    activation_post_process (eg.: scale * x )
+    activation_pre_process eg.: sign(x)
+    weight_pre_process eg.: sign(x)
+    activation_post_process eg.: scale * x
     
     2. define some operation F(x, weights)
     
