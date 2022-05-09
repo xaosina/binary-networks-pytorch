@@ -21,7 +21,7 @@
     
     2. define some operation F(x, weights)
     
-    2. then forward call is defiend as following
+    3. then forward call is defiend as follows
     
     forward(input: torch.Tensor) -> torch.Tensor:
         input = activation_pre_process(input)
