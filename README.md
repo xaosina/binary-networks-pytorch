@@ -1,10 +1,10 @@
-ISSUES:
+# ISSUES:
 
 - Two model folders /  Need to merge
 - Need to test FLOPS counter
 
 
-
+<hr>
 
 # Binary Neural Networks (BNN)
 
