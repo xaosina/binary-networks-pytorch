@@ -16,9 +16,9 @@ from bnn.ops import (
     
 )
 
-model = resnet18(num_classes=200)
+#model = resnet18(num_classes=200)
 
-#model = models.__dict__["resnet18"](stem_type="basic", num_classes=200)
+model = models.__dict__["resnet18"](stem_type="basic", num_classes=200)
 
 bconfig = BConfig(
     activation_pre_process=BasicInputBinarizer,

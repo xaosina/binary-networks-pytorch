@@ -15,8 +15,6 @@ from bnn import BConfig, prepare_binary_model, Identity
 from bnn.ops import (
     BasicInputBinarizer,
     XNORWeightBinarizer,
-    TanhBinarizer,
-    NoisyTanhBinarizer,
     BasicScaleBinarizer,
     BiasPostprocess,
     BiasInputBinarizer
@@ -54,7 +52,7 @@ models_list = [(copy.deepcopy(model),'/home/dev/data_main/LOGS/BNN/binary_exp_ti
           ]
 
 
-model = Ensmembler(models_list)
+model = Ensmembler(models_list, mix_type='voting')
 
 TARGET = "label"
 

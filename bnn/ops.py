@@ -346,7 +346,7 @@ class BiasInputBinarizer(BinarizerBase):
             self.add_bias = True
         
         # linear layer
-        elif hasattr(module, 'in_feature'):
+        elif hasattr(module, 'in_features'):
             in_features = module.in_features
             self.bias = 0 #nn.Parameter(torch.zeros(1, in_features), requires_grad=True)
             self.add_bias = False
@@ -370,19 +370,22 @@ class BiasPostprocess(BinarizerBase):
             self.bias = nn.Parameter(torch.zeros(1, out_channels, 1, 1),
                                  requires_grad=True)
             self.add_bias = True
+            alpha_shape = [1, out_channels] + [1] * (module.weight.dim() - 2)
+            self.alpha = nn.Parameter(torch.ones(*alpha_shape))
             
         # linear layer
-        elif hasattr(module, 'in_feature'):
-            out_features = module.out_features
-            self.bias = 0  #nn.Parameter(torch.zeros(1, out_features),requires_grad=True)
-            self.add_bias = False
+        elif hasattr(module, 'out_features'):
+            out_channels = module.out_features
+            self.bias = nn.Parameter(torch.zeros(1),requires_grad=True)
+            self.add_bias = True
+            self.alpha = nn.Parameter(torch.ones(1))
         
         else:
             self.bias = 0 #nn.Parameter(torch.zeros(1), requires_grad=True)
             self.add_bias = False
-
-
+            
     def forward(self, x: torch.Tensor, q: torch.Tensor):
         if self.add_bias:
             x = x + self.bias.expand_as(x)
+            x.mul_(self.alpha)
         return x
