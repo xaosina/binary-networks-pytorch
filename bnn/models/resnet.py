@@ -1,13 +1,15 @@
 # model definitions based on https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
-from typing import Type, Any, Callable, Union, List, Optional
+from typing import Any, Callable, List, Optional, Type, Union
+
 import torch
 import torch.nn as nn
 
-from .layers import BasicBlock, Bottleneck, HBlock, PreBasicBlock, PreBottleneck
-from .layers import conv1x1
+from .layers import (BasicBlock, Bottleneck, HBlock, PreBasicBlock,
+                     PreBottleneck, conv1x1)
 
 
 class DaBNNStem(nn.Module):
+    
     def __init__(self, planes: int, norm_layer: Optional[Callable[..., nn.Module]] = None,
                  activation=nn.ReLU):
         super(DaBNNStem, self).__init__()
@@ -15,22 +17,22 @@ class DaBNNStem(nn.Module):
         self.conv1 = nn.Sequential(
             nn.Conv2d(3, planes // 2, kernel_size=3, stride=2, padding=1, bias=False),
             norm_layer(planes // 2),
-            activation()
+            activation(planes // 2)
         )
         self.conv2_1 = nn.Sequential(
             nn.Conv2d(planes // 2, planes // 4, 1, 1, bias=False),
             norm_layer(planes // 4),
-            activation()
+            activation(planes // 4)
         )
         self.conv2_2 = nn.Sequential(
             nn.Conv2d(planes // 4, planes // 2, kernel_size=3, stride=2, padding=1, bias=False),
             norm_layer(planes // 2),
-            activation()
+            activation(planes // 4)
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(planes, planes, 1, 1, bias=False),
             norm_layer(planes),
-            activation()
+            activation(planes // 4)
         )
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
@@ -48,7 +50,8 @@ class DaBNNStem(nn.Module):
 
 
 class ResNet(nn.Module):
-
+    """Some Resnet Like arch
+    """
     def __init__(
         self,
         block: Type[Union[BasicBlock, Bottleneck, HBlock, PreBasicBlock, PreBottleneck]],
@@ -83,12 +86,12 @@ class ResNet(nn.Module):
         self.groups = groups
         self.base_width = width_per_group
         if stem_type == 'basic':
-            self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
+            self.first_conv = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
                                    bias=False)
             self.bn1 = norm_layer(self.inplanes)
         elif stem_type == 'dabnn':
             self.conv1 = DaBNNStem(self.inplanes, norm_layer=norm_layer)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(64)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2,
@@ -98,7 +101,7 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(self.outplanes, num_classes)
+        self.last_fc = nn.Linear(self.outplanes, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -146,7 +149,7 @@ class ResNet(nn.Module):
 
     def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
         # See note [TorchScript super()]
-        x = self.conv1(x)
+        x = self.first_conv(x)
         if self.stem_type == 'basic':
             x = self.bn1(x)
             x = self.relu(x)
@@ -159,7 +162,7 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
-        x = self.fc(x)
+        x = self.last_fc(x)
 
         return {"preds": x}
 

@@ -6,15 +6,20 @@ from trainers.optimizers import OPT, SCH
 from tqdm.autonotebook import tqdm
 from trainers.trainer_utils import AverageMeter, Timer
 from omegaconf import OmegaConf as omg
-from omegaconf.dictconfig import DictConfig 
+from omegaconf.dictconfig import DictConfig
 
 
 class Trainer:
+    """Model trainer
+    
+    """    
     def __init__(
         self,
         criterion,
         metrics,
-        optimizers={"main": ("SGD", {"lr": 1e-3})},  # a list of tuples
+        optimizers={"main": ("SGD", {
+            "lr": 1e-3
+        })},  # a list of tuples
         phases=["train"],
         num_epochs=3,
         device="cpu",
@@ -43,6 +48,8 @@ class Trainer:
         self.log_training = log_training
         self.trainer_name = trainer_name
         self.dataset_opt_link = dataset_opt_link
+        self.metrics = self._init_metrics_and_loss(self.init_metrics)
+        
 
     def set_model(self, model, param_groups="default"):
         # TODO: update optimizer prameters dict
@@ -53,7 +60,6 @@ class Trainer:
             param_groups = {"main": self.model.parameters()}
         self._log("Use GPU: {} for training".format(self.device))
         self._init_optimizers(param_groups)
-        self.metrics = self._init_metrics_and_loss(self.init_metrics)
 
     # TODO it does not work with LR scheduler
     # See method usage in Random searcher
@@ -65,14 +71,16 @@ class Trainer:
 
         # TODO check that keys in opt_groups match keys in self.initial_optimizers
         for opt_group in param_groups:
-            opt_name, opt_params = self.initial_optimizers[opt_group]["optimizer"]
-            sch_name, sch_params = self.initial_optimizers[opt_group]["scheduler"]
+            opt_name, opt_params = self.initial_optimizers[opt_group][
+                "optimizer"]
+            sch_name, sch_params = self.initial_optimizers[opt_group][
+                "scheduler"]
             if opt_params is None:
                 opt_params = dict()
             if sch_params is None:
                 sch_params = dict()
             opt_params["params_dict"] = param_groups[opt_group]
-            if sch_name == "cosine": 
+            if sch_name == "cosine":
                 print(sch_params)
                 sch_params["epochs"] = self.num_epochs
             self.optimizers[opt_group] = OPT[opt_name](**opt_params)
@@ -88,12 +96,12 @@ class Trainer:
         metrics_dict = dict()
         for phase in self.phases:
             metrics_dict[phase] = {
-                n: AverageMeter(m, n, t) for (n, m, t) in metrics
+                n: AverageMeter(m, n, t)
+                for (n, m, t) in metrics
             }
             # if phase == "train":
-            metrics_dict[phase]["loss"] = AverageMeter(
-                self.criterion, "loss", "average"
-            )
+            metrics_dict[phase]["loss"] = AverageMeter(self.criterion, "loss",
+                                                       "average")
         return metrics_dict
 
     def _update_metrics(self, outputs, batch, phase):
@@ -129,17 +137,20 @@ class Trainer:
                     for name in self.schedulers:
                         method = self.schedulers[name].step
                         method()
-                        self._log(f"New lr for group '{name}': {self.schedulers[name].get_last_lr()}")
+                        self._log(
+                            f"New lr for group '{name}': {self.schedulers[name].get_last_lr()}"
+                        )
                 else:
                     name = self.dataset_opt_link[phase]
                     method = self.schedulers[name].step
                     method()
-                    self._log(f"New lr for group '{name}': {self.schedulers[name].get_last_lr()}")
+                    self._log(
+                        f"New lr for group '{name}': {self.schedulers[name].get_last_lr()}"
+                    )
             else:
                 method = self.schedulers.step
                 method()
                 self._log(f"New lr: {self.schedulers.get_last_lr()}")
-
 
     def _log(self, message):
         if self.logging:
@@ -192,9 +203,8 @@ class Trainer:
                         )
                         values = {
                             str(k): self.model.get_arch()[key][0][k]
-                            for k in range(
-                                0, len(self.model.get_arch()[key][0])
-                            )
+                            for k in range(0, len(self.model.get_arch()[key]
+                                                  [0]))
                         }
                         self.logger.log_metrics("arch_" + key, values, epoch)
 
@@ -203,14 +213,12 @@ class Trainer:
             metrics_val = self.get_last_epoch_metrics(phase="validation")
             metrics_train = self.get_last_epoch_metrics(phase="train")
 
-            self.logger.log_metrics(
-                f"{self.trainer_name }_val", metrics_val, epoch
-            )
-            self.logger.log_metrics(
-                f"{self.trainer_name }_train", metrics_train, epoch
-            )
+            self.logger.log_metrics(f"{self.trainer_name }_val", metrics_val,
+                                    epoch)
+            self.logger.log_metrics(f"{self.trainer_name }_train",
+                                    metrics_train, epoch)
 
-    def _iterate_one_epoch(self, phase, epoch):
+    def _iterate_one_epoch(self, phase, epoch=0):
         # Each epoch has a training and validation phase
 
         if phase == "validation":
@@ -243,18 +251,20 @@ class Trainer:
                         self._opt_zero_grad(phase)
                 batch_time.update(time.time() - end)
                 for_print = {
-                    batch_time.name: str(batch_time), 
+                    batch_time.name: str(batch_time),
                     data_time.name: str(data_time)
                 }
                 for_print.update({
-                    k: "{:.3f}".format(self.metrics[phase][k].avg) for k in self.metrics[phase]
+                    k: "{:.3f}".format(self.metrics[phase][k].avg)
+                    for k in self.metrics[phase]
                 })
-                for_print = "|".join([" ".join([k, for_print[k]]) for k in for_print])
+                for_print = "|".join(
+                    [" ".join([k, for_print[k]]) for k in for_print])
                 t.set_description(for_print)
                 end = time.time()
         self._log(for_print)
         for_board = {
-            batch_time.name: batch_time.sum, 
+            batch_time.name: batch_time.sum,
             data_time.name: data_time.sum
         }
         self.logger.add_scalars(f"{phase} time", for_board, epoch)
@@ -287,28 +297,28 @@ class Trainer:
                 self._iterate_one_epoch(phase, epoch)
                 metrics = self.get_last_epoch_metrics(phase)
                 metric_string = " | ".join(
-                    [f"{key}:{value:.3f}" for key, value in metrics.items()]
-                )
+                    [f"{key}:{value:.3f}" for key, value in metrics.items()])
                 self._log(f"{phase.upper()} {metric_string}")
-                if phase == "validation": 
+                if phase == "validation":
                     state = {
-                        'epoch': epoch,
-                        'state_dict': self.model.state_dict(),
-                        'metric': metrics["accuracy"] if "accuracy" in metrics else 0,
+                        'epoch':
+                        epoch,
+                        'state_dict':
+                        self.model.state_dict(),
+                        'metric':
+                        metrics["accuracy"] if "accuracy" in metrics else 0,
                     }
                     is_best = state["metric"] >= best_acc
-                    best_acc = state["metric"] if state["metric"] >= best_acc else best_acc
+                    best_acc = state[
+                        "metric"] if state["metric"] >= best_acc else best_acc
                     self.logger.save_checkpoint(state, is_best)
-                    
+
             if self.terminator_chek_if_nan_or_inf():
                 break
 
         time_elapsed = time.time() - start_time
-        self._log(
-            "Training complete in {:.0f}m {:.0f}s".format(
-                time_elapsed // 60, time_elapsed % 60
-            )
-        )
+        self._log("Training complete in {:.0f}m {:.0f}s".format(
+            time_elapsed // 60, time_elapsed % 60))
 
     def get_history(self, phase="validation"):
         history = dict()

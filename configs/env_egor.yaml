@@ -7,9 +7,11 @@ TENSORBOARD_SETUP:
   FLUSH_EVERY_N_MIN: 1 # most of it useless
   LOG_PARAMS: True
   LOG_PARAMS_EVERY_N_ITERS: 1
+
 HARDWARE: 
-  GPU: 0
-  WORKERS: 6
+  GPU: 2
+  WORKERS: 4
+  SEED: 1
 
 EXPERIMENT: 
   DIR: "/home/dev/data_main/LOGS/BNN/binary_exp_time_env/" # where to save data
@@ -18,3 +20,18 @@ PARAMS:
   gpu: 3
   data: /home/dev/data_main/imagenet_shards/
   loader: wds
+
+TRAINING:
+  EPOCHS: 90
+  BATCH_SIZE: 128
+
+OPTIMIZER: 
+  main:
+    optimizer:
+      - ADAM 
+      - lr: 0.001
+        # weight_decay: 0
+    scheduler: 
+      - cosine
+      - 
+      
