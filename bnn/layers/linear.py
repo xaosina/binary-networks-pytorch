@@ -15,9 +15,9 @@ class Linear(nn.Linear):
         super(Linear, self).__init__(in_features, out_features, bias)
         assert bconfig, 'bconfig is required for a binarized module'
         self.bconfig = bconfig
-        self.activation_pre_process = bconfig.activation_pre_process()
+        self.activation_pre_process = bconfig.activation_pre_process(self)
         self.activation_post_process = bconfig.activation_post_process(self)
-        self.weight_pre_process = bconfig.weight_pre_process()
+        self.weight_pre_process = bconfig.weight_pre_process(self)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         input_proc = self.activation_pre_process(input)

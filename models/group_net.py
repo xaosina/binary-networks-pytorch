@@ -74,9 +74,9 @@ class ResNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=1000):
         self.inplanes = 64
-        self.num_bases = 5
+        self.num_bases = 4
         super(ResNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=True) #don't quantize the first layer
+        self.first_conv = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=True) #don't quantize the first layer
         self.bn1 = nn.BatchNorm2d(64) 
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
@@ -103,7 +103,7 @@ class ResNet(nn.Module):
 
 
     def forward(self, x):
-        x = self.conv1(x)
+        x = self.first_conv(x)
         x = self.maxpool(x)
         x = self.bn1(x)
 

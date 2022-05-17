@@ -1,31 +1,35 @@
+import copy
+
 from models.group_net import resnet18
 from models.reactnet import reactnet
 import bnn.models.resnet as models
 
 from datasets.datasets import get_tiny_image_net
+from run_experiment import validate
+
+from estimate_flops import get_stats
+from ensembler import Ensmembler
+
 from bnn import BConfig, prepare_binary_model, Identity
-from run_experiment import run_experiment
 
 from bnn.ops import (
     BasicInputBinarizer,
     XNORWeightBinarizer,
-    AdvancedNoisyInputBinarizer,
     BasicScaleBinarizer,
     BiasPostprocess,
     BiasInputBinarizer
     
 )
 
-#model = resnet18(num_classes=200)
-
-model = models.__dict__["resnet18"](stem_type="basic", num_classes=200)
 
 bconfig = BConfig(
     activation_pre_process=BasicInputBinarizer,
     activation_post_process=BasicScaleBinarizer,
-    weight_pre_process=XNORWeightBinarizer.with_args(compute_alpha=False,
-                                                     center_weights=True),
+    weight_pre_process=XNORWeightBinarizer.with_args(compute_alpha=False, center_weights=True),
 )
+
+model = models.__dict__["resnet18"](stem_type="basic", num_classes=200)
+get_stats(model)
 
 model = prepare_binary_model(
     model,
@@ -38,11 +42,21 @@ model = prepare_binary_model(
     },
 )
 
-#print(model)
+
+
+models_list = [(copy.deepcopy(model),'/home/dev/data_main/LOGS/BNN/binary_exp_time_env/resnet18v2_binirized/model_best.pth.tar'),
+          (copy.deepcopy(model),
+           '/home/dev/data_main/LOGS/BNN/binary_exp_time_env/resnnet_binary_baisc/model_best.pth.tar'),
+          (copy.deepcopy(model),
+           '/home/dev/data_main/LOGS/BNN/binary_exp_time_env/resnet18_v4_binarized/model_best.pth.tar'),
+          ]
+
+
+model = Ensmembler(models_list, mix_type='voting')
 
 TARGET = "label"
 
-run_experiment(model, get_tiny_image_net, TARGET)
+validate(model, get_tiny_image_net, TARGET)
 
 # np.save(
 #     "./filters_TanhBinarizer_L",
