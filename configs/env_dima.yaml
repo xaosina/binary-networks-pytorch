@@ -7,6 +7,8 @@ PROJECT: # looks like it is for code save. will copy each py file from ROOT and 
     - datasets
     - models
     - trainers
+    - pthflops
+    - recipes
 TENSORBOARD_SETUP: 
   FLUSH_EVERY_N_MIN: 1 # most of it useless
   LOG_PARAMS: True
@@ -19,7 +21,7 @@ HARDWARE:
 
 TRAINING:
   EPOCHS: 90
-  BATCH_SIZE: 256
+  BATCH_SIZE: 64
 
 OPTIMIZER: 
   main:
@@ -33,11 +35,6 @@ OPTIMIZER:
 
 
 EXPERIMENT: 
-  DIR: "/home/dev/data_main/LOGS/BNN/" # where to save data
+  DIR: "/home/dev/data_main/LOGS/BNN/group_net_updates" # where to save data
 
-# PARAMS:
-#   # gpu: 2
-#   data: /home/dev/data_main/imagenet_shards/
-#   loader: wds
-  # batch_size: 256
-  # workers: 20
+

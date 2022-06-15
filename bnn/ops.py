@@ -334,9 +334,9 @@ class XNORScaleBinarizer(BinarizerBase):
         return x.mul_(scale)
 
 
-class BiasInputBinarizer(BinarizerBase):
+class InputBiasBinarizer(BinarizerBase):
     def __init__(self, module):
-        super(BiasInputBinarizer, self).__init__()
+        super(InputBiasBinarizer, self).__init__()
         
         # conv layer        
         if hasattr(module, 'in_channels'):
@@ -348,14 +348,14 @@ class BiasInputBinarizer(BinarizerBase):
         # linear layer
         elif hasattr(module, 'in_features'):
             in_features = module.in_features
-            self.bias = 0 #nn.Parameter(torch.zeros(1, in_features), requires_grad=True)
+            self.bias = None #nn.Parameter(torch.zeros(1, in_features), requires_grad=True)
             self.add_bias = False
         else:
-            self.bias = 0 #nn.Parameter(torch.zeros(1),requires_grad=True)
+            self.bias = None #nn.Parameter(torch.zeros(1),requires_grad=True)
             self.add_bias = False
 
     def forward(self, x: torch.Tensor):
-        if  self.add_bias:
+        if self.add_bias:
             x = x + self.bias.expand_as(x)
         return SignActivation.apply(x)
     
