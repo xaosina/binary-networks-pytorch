@@ -1,13 +1,32 @@
-from ops_jit import count_ops_jit
-try:
-    from ops_fx import count_ops_fx
-    force_jit = False
-    print('Able to import torch.fx.')
-except:
-    force_jit = True
-    print('Unable to import torch.fx, you pytorch version may be too old.')
+# from ops_jit import count_ops_jit
+# try:
+import sys
+from os import path
+sys.path.append(path.dirname(path.abspath(__file__)))
+
+from ops_fx import count_ops_fx, ProfilingInterpreter
+force_jit = False
+import torch
+import pandas as pd
+# print('Able to import torch.fx.')
+# except Exception as e:
+#     force_jit = True
+#     print(e)
+#     print('Unable to import torch.fx, you pytorch version may be too old.')
 
 __version__ = '0.4.2'
+
+def count_mixed_ops(model, input_size=224):
+    inp = torch.rand(1,3,input_size,input_size)
+    tracer = ProfilingInterpreter(model)
+    tracer.run(inp)
+    df = pd.DataFrame(columns=[f"BitOps({input_size}x{input_size})", f"Flops({input_size}x{input_size})"])
+    for k, v in tracer.bitops_flops.items():
+        if sum(v[0]) > 0:
+            df.loc[k.name] = v[0]
+    print(df.sum())
+    return df
+
 
 
 def count_ops(model, input, mode='fx', custom_ops={}, ignore_layers=[], print_readable=True, verbose=True, *args):
@@ -20,16 +39,16 @@ def count_ops(model, input, mode='fx', custom_ops={}, ignore_layers=[], print_re
             print_readable=print_readable,
             verbose=verbose,
             *args) # TODO this branch
-    elif 'jit' == mode or force_jit:
-        if force_jit:
-            print("FX is unsupported on your pytorch version, falling back to JIT")
-        return count_ops_jit(
-            model,
-            input,
-            custom_ops=custom_ops,
-            ignore_layers=ignore_layers,
-            print_readable=print_readable,
-            verbose=verbose,
-            *args)
+    # elif 'jit' == mode or force_jit:
+    #     if force_jit:
+    #         print("FX is unsupported on your pytorch version, falling back to JIT")
+    #     return count_ops_jit(
+    #         model,
+    #         input,
+    #         custom_ops=custom_ops,
+    #         ignore_layers=ignore_layers,
+    #         print_readable=print_readable,
+    #         verbose=verbose,
+    #         *args)
     else:
         raise ValueError('Unknown mode selected.')

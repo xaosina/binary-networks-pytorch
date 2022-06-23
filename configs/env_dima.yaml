@@ -35,6 +35,6 @@ OPTIMIZER:
 
 
 EXPERIMENT: 
-  DIR: "/home/dev/data_main/LOGS/BNN/group_net_updates" # where to save data
+  DIR: "/home/dev/data_main/LOGS/BNN/Group_Expert_React" # where to save data
 
 

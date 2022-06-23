@@ -1,7 +1,7 @@
-from models.expert_react_group_net import resnet18, BasicBlock
+from models.BlockExpertNet import resnet18, BasicBlock
 import torch
 
-from datasets.datasets import get_tiny_image_net
+from datasets.datasets import get_tiny_imagenet_wds
 from bnn import BConfig, prepare_binary_model, Identity
 from run_experiment import run_experiment
 
@@ -13,7 +13,7 @@ from bnn.ops import (
     
 )
 
-model = resnet18(num_classes=200, single_path=True, use_only_first=True)
+model = resnet18(num_classes=200, rprelu=False)
 
 #model = models.__dict__["resnet18"](stem_type="basic", num_classes=200)
 
@@ -24,6 +24,9 @@ bconfig = BConfig(
                                                      center_weights=True),
 )
 
+ignore_layers_name = [
+    '$layer+[0-9]\.+[0-9]\.fc$']
+
 model = prepare_binary_model(
     model,
     bconfig,
@@ -31,11 +34,14 @@ model = prepare_binary_model(
         "first_conv": BConfig(),
         # "fc": BConfig(),
     },
+    ignore_layers_name=ignore_layers_name,
 )
 
-
-state = torch.load("/home/dev/data_main/LOGS/BNN/group_net_updates/RSign_only_first_expert/model_best.pth.tar", "cpu")
-model.load_state_dict(state["state_dict"])
+seed = 0
+state_path = f"/home/dev/data_main/LOGS/BNN/Group_Expert_React/ResNet_RSign/{seed}/model_best.pth.tar"
+print("Loading state:", state_path)
+state = torch.load(state_path, "cpu")
+model.load_state_dict(state["state_dict"], strict=False)
 with torch.no_grad():
     for module in model.named_modules():
         if isinstance(module[1], BasicBlock):
@@ -51,4 +57,4 @@ with torch.no_grad():
 
 TARGET = "label"
 
-run_experiment(model, get_tiny_image_net, TARGET)
+run_experiment(model, get_tiny_imagenet_wds, TARGET)

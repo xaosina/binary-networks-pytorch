@@ -28,7 +28,7 @@ def conv3x3(in_planes, out_planes, stride=1):
                      padding=1, bias=False)
 
 class RPReLU(nn.Module):
-    def __init__(self, channels, bias=True):
+    def __init__(self, channels, bias=False):
         super(RPReLU, self).__init__()
         self.prelu = nn.PReLU(channels)
         if bias:
@@ -48,19 +48,18 @@ class BasicBlock(nn.Module):
     expansion = 1
 
     def __init__(
-        self, num_bases, inplanes, planes, stride=1, downsample=None, single_path=False, use_only_first=False
+        self, num_bases, inplanes, planes, stride=1, downsample=None, rprelu=False
     ):
-        super(BasicBlock, self).__init__() 
+        super(BasicBlock, self).__init__()
+        self.rprelu = rprelu
+        print("RPReLU ", rprelu, num_bases) 
         self.num_bases = num_bases
-        self.single_path = single_path
-        self.use_only_first = use_only_first
-        print(f"Single path={single_path}, use_only_first={use_only_first}")
         self.conv1 = nn.ModuleList([conv3x3(inplanes, planes, stride) for i in range(num_bases)])       
         self.bn1 = nn.ModuleList([nn.BatchNorm2d(planes) for i in range(num_bases)])
-        self.relu1 = nn.ModuleList([RPReLU(planes, bias=False) for i in range(num_bases)])
+        self.relu1 = nn.ModuleList([RPReLU(planes, bias=rprelu) for i in range(num_bases)])
         self.conv2 = nn.ModuleList([conv3x3(planes, planes) for i in range(num_bases)])
         self.bn2 = nn.ModuleList([nn.BatchNorm2d(planes) for i in range(num_bases)])
-        self.relu2 = nn.ModuleList([RPReLU(planes, bias=False) for i in range(num_bases)])
+        self.relu2 = nn.ModuleList([RPReLU(planes, bias=rprelu) for i in range(num_bases)])
         self.downsample = downsample
         self.scales = nn.ParameterList([nn.Parameter(torch.rand(1), requires_grad=True) for i in range(num_bases)])
         self.activation = torch.sigmoid
@@ -76,14 +75,9 @@ class BasicBlock(nn.Module):
             
         avg_x = F.adaptive_avg_pool2d(x, 1).flatten(1)
         gate_x = self.fc(avg_x)
-        if self.single_path:
-            gate_x = self.activation(gate_x)
-            # WTA function with Identity
-            gate_x = BinarySoftActivation.apply(gate_x)
-            if self.use_only_first:
-                gate_x = gate_x * torch.zeros_like(gate_x)
-                first_expert = gate_x[:, 0]
-                first_expert += torch.ones_like(gate_x[:, 0])
+        gate_x = self.activation(gate_x)
+        # WTA function with Identity
+        gate_x = BinarySoftActivation.apply(gate_x)
         for conv1, conv2, bn1, bn2, relu1, relu2, scale in zip(
             self.conv1, self.conv2, self.bn1, self.bn2, self.relu1, self.relu2, self.scales
         ):
@@ -123,11 +117,10 @@ class downsample_layer(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000, single_path=False, use_only_first=False):
+    def __init__(self, block, layers, num_classes=1000, rprelu=False):
         self.inplanes = 64
         self.num_bases = 4
-        self.single_path = single_path
-        self.use_only_first = use_only_first
+        self.rprelu = rprelu
         super(ResNet, self).__init__()
         self.first_conv = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=True) #don't quantize the first layer
         self.bn1 = nn.BatchNorm2d(64) 
@@ -153,8 +146,7 @@ class ResNet(nn.Module):
             planes, 
             stride, 
             downsample, 
-            single_path=self.single_path, 
-            use_only_first=self.use_only_first,
+            rprelu=self.rprelu
         ))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
@@ -162,10 +154,8 @@ class ResNet(nn.Module):
                 self.num_bases, 
                 self.inplanes, 
                 planes, 
-                single_path=self.single_path, 
-                use_only_first=self.use_only_first,
+                rprelu=self.rprelu
             ))
-
 
         return nn.Sequential(*layers)
 

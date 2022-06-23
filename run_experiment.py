@@ -24,6 +24,9 @@ parser.add_argument('--gpu', metavar='gpu', default=None,
 
 parser.add_argument("-u", '--user', type=str, choices=["dima", "egor"], required=True)
 
+parser.add_argument('--seed', metavar='seed', default=None,
+                    help='seed')
+
 args = vars(parser.parse_args())
 
 
@@ -45,6 +48,9 @@ def run_experiment(model, get_loaders, target):
     
     if args['gpu'] is not None:
         env_config.HARDWARE.GPU = int(args['gpu'])
+
+    if args["seed"] is not None:
+        env_config.HARDWARE.SEED = int(args["seed"])
 
     new_conf = copy.deepcopy(env_config)
     new_conf.EXPERIMENT.DIR = os.path.join(

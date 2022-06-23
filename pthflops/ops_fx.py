@@ -2,12 +2,13 @@ from functools import reduce
 from typing import Any, Dict, List, Tuple
 from numpy import isin
 import numpy as np
+import pandas as pd
 
 import torch
 import torch.fx
 import torch.nn as nn
 
-from utils import same_device, print_table
+# from utils import same_device, print_table
 
 import sys
 from os import path
@@ -254,7 +255,7 @@ class ProfilingInterpreter(torch.fx.Interpreter):
         traced = tracer.trace(mod)
         gm = torch.fx.GraphModule(mod, traced)#, concrete_args={"x": input})
         super().__init__(gm)
-        print("Proxy done")
+        # print("Proxy done")
         self.custom_ops = custom_ops
 
         self.bitops_flops: Dict[torch.fx.Node, float] = {}
