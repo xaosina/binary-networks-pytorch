@@ -16,14 +16,20 @@ import pandas as pd
 
 __version__ = '0.4.2'
 
-def count_mixed_ops(model, input_size=224):
+def count_mixed_ops(model, input_size=224, class_names=False):
     inp = torch.rand(1,3,input_size,input_size)
     tracer = ProfilingInterpreter(model)
     tracer.run(inp)
-    df = pd.DataFrame(columns=[f"BitOps({input_size}x{input_size})", f"Flops({input_size}x{input_size})"])
+    columns = [f"BitOps({input_size}x{input_size})", f"Flops({input_size}x{input_size})"]
+    if class_names:
+        columns += ["class"]
+    df = pd.DataFrame(columns=columns)
     for k, v in tracer.bitops_flops.items():
+        if k.name in df.index:
+            raise ValueError(f"Trying to overwrite nodes values {k.name}")
         if sum(v[0]) > 0:
-            df.loc[k.name] = v[0]
+            value = v[0] + (v[1],) if class_names else v[0]
+            df.loc[k.name] = value
     print(df.sum())
     return df
 

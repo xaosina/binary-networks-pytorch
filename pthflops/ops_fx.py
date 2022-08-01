@@ -266,6 +266,8 @@ class ProfilingInterpreter(torch.fx.Interpreter):
     def run_node(self, n: torch.fx.Node) -> Any: #TODO не меняет ничего, просто раскидал данные
         return_val = super().run_node(n)
         if isinstance(return_val, Tuple) and (n.op == "call_module" or n.op == "call_function" or n.op == "call_method"):
+            if n in self.bitops_flops:
+                raise ValueError(f"Triyng to overwrite nodes values. {n}")
             self.bitops_flops[n] = ((return_val[1], return_val[2]), return_val[3])
             self.parameters[n] = return_val[4]
             return_val = return_val[0]
