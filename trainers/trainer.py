@@ -28,6 +28,7 @@ class Trainer:
         dataset_opt_link=None,
         log_training=False,
         trainer_name="#",
+        gradient_accum=None,
     ):
 
         # can be a list of optimizers / probably need a dictionary ??
@@ -49,6 +50,7 @@ class Trainer:
         self.trainer_name = trainer_name
         self.dataset_opt_link = dataset_opt_link
         self.metrics = self._init_metrics_and_loss(self.init_metrics)
+        self.gradient_accum = gradient_accum
         
 
     def set_model(self, model, param_groups="default"):
@@ -232,6 +234,7 @@ class Trainer:
         end = time.time()
         data_time = Timer("Data")
         batch_time = Timer("Time")
+        n = 0
         with tqdm(self.dataloaders[phase], total=n_batches) as t:
             for batch in t:
                 data_time.update(time.time() - end)
@@ -246,9 +249,16 @@ class Trainer:
 
                     # backward + optimize only if in training phase
                     if phase.startswith("train"):
-                        self.metrics[phase]["loss"].last_value.backward()
-                        self._opt_step(phase)
-                        self._opt_zero_grad(phase)
+                        if self.gradient_accum is None:
+                            self.metrics[phase]["loss"].last_value.backward()
+                            self._opt_step(phase)
+                            self._opt_zero_grad(phase)
+                        else:
+                            (self.metrics[phase]["loss"].last_value / self.gradient_accum).backward()
+                            if ((n + 1) % self.gradient_accum == 0) or (n == n_batches - 1):
+                                self._opt_step(phase)
+                                self._opt_zero_grad(phase)
+
                 batch_time.update(time.time() - end)
                 for_print = {
                     batch_time.name: str(batch_time),
@@ -262,6 +272,10 @@ class Trainer:
                     [" ".join([k, for_print[k]]) for k in for_print])
                 t.set_description(for_print)
                 end = time.time()
+                n += 1
+        for k in self.metrics[phase]:
+            s = str(self.metrics[phase][k])
+            for_print += "|" + s if s != "" else ""
         self._log(for_print)
         for_board = {
             batch_time.name: batch_time.sum,

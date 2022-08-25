@@ -81,7 +81,7 @@ class BasicBlock(nn.Module):
         if self.downsample is not None:
             residual = self.downsample(x)
         else:
-            residual = x.clone()
+            residual = x
             
         avg_x = F.adaptive_avg_pool2d(x, 1).flatten(1)
         gate_x = self.fc(avg_x)
@@ -95,7 +95,7 @@ class BasicBlock(nn.Module):
         else:
             # print(gate_x[:1].round(decimals=3))
             gate_x = TopKSampler.apply(gate_x, self.sampling["k"])
-        if not self.sampling["effective"]:
+        if not self.sampling.get("effective", False):
             for conv1, conv2, bn1, bn2, relu1, relu2, scale in zip(
                 self.conv1, self.conv2, self.bn1, self.bn2, self.relu1, self.relu2, self.scales
             ):
@@ -146,7 +146,7 @@ class downsample_layer(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000, rprelu=False, sampling=None):
+    def __init__(self, block, layers, num_classes=1000, rprelu=False, sampling={}):
         self.inplanes = 64
         self.num_bases = 4
         self.rprelu = rprelu

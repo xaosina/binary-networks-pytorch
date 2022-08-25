@@ -1,7 +1,7 @@
-from models.resnet import resnet18, BasicBlock
+from models.DeepLabV3 import resnet50, Bottleneck
 import torch
 
-from datasets.datasets import get_imagenet_wds
+from datasets.datasets import get_pascal
 from bnn import BConfig, prepare_binary_model, Identity
 from run_experiment import run_experiment
 
@@ -10,12 +10,16 @@ from bnn.ops import (
     XNORWeightBinarizer,
     BasicScaleBinarizer,
     InputBiasBinarizer
-    
+
 )
 
-model = resnet18(num_classes=1000, rprelu=False)
-
-#model = models.__dict__["resnet18"](stem_type="basic", num_classes=200)
+model = resnet50(
+    pretrained=True,
+    num_classes=21,
+    num_groups=None,
+    weight_std=False,
+    beta=False,
+)
 
 bconfig = BConfig(
     activation_pre_process=InputBiasBinarizer,
@@ -28,12 +32,12 @@ model = prepare_binary_model(
     model,
     bconfig,
     custom_config_layers_name={
-        "first_conv": BConfig(),
-        "fc": BConfig(),
+        "conv1": BConfig(),
+        # "fc": BConfig(),
     },
 )
 
 
 TARGET = "label"
 
-run_experiment(model, get_imagenet_wds, TARGET)
+run_experiment(model, get_pascal, TARGET)

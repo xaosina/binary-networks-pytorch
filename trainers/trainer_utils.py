@@ -41,6 +41,12 @@ class AverageMeter:
         if self.metric_type == "full":
             self.avg = self.metric.update(outputs, batch)
 
+    def __repr__(self):
+        if hasattr(self.metric, "get_str"):
+            return self.metric.get_str()
+        else:
+            return ""
+
 class Timer:
     def __init__(self, name):
         self.name = name

@@ -1,7 +1,7 @@
 from models.resnet import resnet18, BasicBlock
 import torch
 
-from datasets.datasets import get_imagenet_wds
+from datasets.datasets import get_imagenet_wds_new
 from bnn import BConfig, prepare_binary_model, Identity
 from run_experiment import run_experiment
 
@@ -29,11 +29,11 @@ model = prepare_binary_model(
     bconfig,
     custom_config_layers_name={
         "first_conv": BConfig(),
-        "fc": BConfig(),
+        # "fc": BConfig(),
     },
 )
 
 
 TARGET = "label"
 
-run_experiment(model, get_imagenet_wds, TARGET)
+run_experiment(model, get_imagenet_wds_new, TARGET)

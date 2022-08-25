@@ -22,6 +22,9 @@ HARDWARE:
 TRAINING:
   EPOCHS: 90
   BATCH_SIZE: 64
+  GRADIENT_ACCUM: None
+
+PROBLEM: classification #segmentation
 
 OPTIMIZER: 
   main:
@@ -35,6 +38,6 @@ OPTIMIZER:
 
 
 EXPERIMENT: 
-  DIR: "/home/dev/data_main/LOGS/BNN/Group_Expert_React" # where to save data
+  DIR: "/home/dev/data_main/LOGS/BNN/imagenet" # where to save data
 
 

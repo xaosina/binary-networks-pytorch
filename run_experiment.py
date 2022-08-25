@@ -78,8 +78,17 @@ def run_experiment(model, get_loaders, target):
     dataloaders = {"train": train_loader, "validation": test_loader}
 
     TARGET = target
+    loss = {
+        "classification": "CrossEntropyLoss", 
+        "segmentation": "CrossEntropyLossSegment"
+    }[new_conf.PROBLEM]
+    metric = {
+        "classification": "accuracy", 
+        "segmentation": "iou_pascal"
+    }[new_conf.PROBLEM]
+
     criterion, metrics = get_metrics_and_loss(
-        "CrossEntropyLoss", ["accuracy"], TARGET
+        loss, [metric], TARGET
     )
 
     trainer = Trainer(
@@ -91,6 +100,7 @@ def run_experiment(model, get_loaders, target):
         device=env_config.HARDWARE.GPU,
         logger=logger,
         log_training=True,
+        gradient_accum=new_conf.GRADIENT_ACCUM,
     )
 
     trainer.set_model(model, {"main": filter(lambda p: p.requires_grad, model.parameters())})

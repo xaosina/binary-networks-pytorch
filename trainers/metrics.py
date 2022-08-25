@@ -1,5 +1,7 @@
 import torch
 from functools import partial
+import inspect
+import numpy as np
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -32,6 +34,10 @@ def mse_loss(outputs, batch, TARGET):
 
 def cross_entropy(outputs, batch, TARGET):
     entropy = torch.nn.CrossEntropyLoss()
+    return entropy(outputs["preds"], batch[TARGET])
+
+def cross_entropy_segmentation(outputs, batch, TARGET):
+    entropy = torch.nn.CrossEntropyLoss(ignore_index=255)
     return entropy(outputs["preds"], batch[TARGET])
 
 
@@ -80,8 +86,58 @@ class AucScore:
 
         return score
 
+class IoU_pascal:
+    def __init__(self, TARGET):
+        self.TARGET = TARGET
+        self.class_names = [
+            "background", "aeroplane", "bicycle", "bird", "boat", "bottle", 
+            "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", 
+            "motorbike", "person", "potted-plant", "sheep", "sofa", "train", "tv/monitor",
+        ]
+        self.num_classes = len(self.class_names)
 
-LOSSES = {"CrossEntropyLoss": cross_entropy, "MSELoss": mse_loss}
+    def reset(self):
+        self.inter_sum = 0
+        self.union_sum = 0
+
+    def get_str(self):
+        res = ""
+        iou = self.inter_sum / (self.union_sum + 1e-10)
+        for i, name in enumerate(self.class_names):
+            res += f"{name}: {iou[i].round(3)}|"
+        return res
+
+    def update(self, outputs, batch):
+        _, preds = torch.max(outputs["preds"], 1)
+        inter, union = self.inter_and_union(preds, batch[self.TARGET])
+        self.inter_sum += inter
+        self.union_sum += union
+        return (self.inter_sum / (self.union_sum + 1e-10)).mean()
+
+    def inter_and_union(self, pred, mask):
+        num_class = self.num_classes
+        pred = pred.cpu().numpy().astype(np.uint8)
+        mask = mask.cpu().numpy().astype(np.uint8)
+
+        # 255 -> 0
+        pred += 1
+        mask += 1
+        pred = pred * (mask > 0)
+
+        inter = pred * (pred == mask)
+        (area_inter, _) = np.histogram(inter, bins=num_class, range=(1, num_class))
+        (area_pred, _) = np.histogram(pred, bins=num_class, range=(1, num_class))
+        (area_mask, _) = np.histogram(mask, bins=num_class, range=(1, num_class))
+        area_union = area_pred + area_mask - area_inter
+        num_class = self.num_classes
+
+        return (area_inter, area_union)
+
+LOSSES = {
+    "CrossEntropyLoss": cross_entropy, 
+    "CrossEntropyLossSegment": cross_entropy_segmentation, 
+    "MSELoss": mse_loss
+}
 
 
 METRICS = {
@@ -89,6 +145,7 @@ METRICS = {
     "f1_weighted": (f1_weighted, "average"),
     "accuracy": (accuracy, "average"),
     "auc": (AucScore, "full"),
+    "iou_pascal": (IoU_pascal, "full"),
     "rmse": (rmse, "average"),
     "r2": (r2, "average"),
 }
@@ -101,7 +158,7 @@ def get_metrics_and_loss(loss_name, metric_names, target_name):
 
     for m_name in metric_names:
         f, t = METRICS[m_name]
-        if "auc" in m_name:
+        if inspect.isclass(f): #"auc" in m_name:
             metrics.append((m_name, add_target(f, target_name)(), t))
         else:
             metrics.append((m_name, add_target(f, target_name), t))

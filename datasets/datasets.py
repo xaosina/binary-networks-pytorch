@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torchvision import datasets, transforms
 import webdataset as wds
+from .pascal import VOCSegmentation
 
 
 class LengthSet(IterableDataset):
@@ -50,9 +51,11 @@ def get_mnist(data_path=None, batch_size=-1, workers=-1):
     test_loader = torch.utils.data.DataLoader(dataset2, batch_size=32)
     return train_loader, test_loader
 
+def get_base_imagenet(batch_size=32, workers=4):
+    return get_tiny_image_net("/home/dev/data_main/imagenet", batch_size=batch_size, workers=workers)
 
 def get_tiny_image_net(data_path='/home/dev/data_main/CORESETS/TinyImagenet/tiny-224', batch_size=32, workers=4):
-
+    # /home/dev/data_main/imagenet
  # Data loading code
     traindir = os.path.join(data_path, 'train')
     valdir = os.path.join(data_path, 'val')
@@ -169,3 +172,26 @@ def get_imagenet_wds_new(batch_size=32, workers=4):
     # "/home/dev/data_main/imagenet_fast": [1281167, 50000] 
     train_loader, val_loader = get_wds_set("/home/dev/data_main/imagenet_wds", batch_size, workers)
     return train_loader, val_loader
+
+def get_pascal(batch_size=64, workers=10):
+    train_dataset = VOCSegmentation(
+        "/home/dev/data_main/PASCAL", train=True, train_transform=True
+    )
+    test_dataset = VOCSegmentation(
+        "/home/dev/data_main/PASCAL", train=False
+    )
+    testloader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=workers,
+        pin_memory=True,
+    )
+    trainloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=workers,
+        pin_memory=True,
+    )
+    return trainloader, testloader
