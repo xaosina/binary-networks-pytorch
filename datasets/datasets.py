@@ -195,3 +195,48 @@ def get_pascal(batch_size=64, workers=10):
         pin_memory=True,
     )
     return trainloader, testloader
+
+def get_cifar100(batch_size=32, workers=10):
+    normalize = transforms.Normalize(
+        (0.5074,0.4867,0.4411), (0.2011,0.1987,0.2025)
+    )
+
+    train_transform = transforms.Compose([])
+    train_transform.transforms.append(transforms.RandomCrop(32, padding=4, padding_mode="reflect"))
+    train_transform.transforms.append(transforms.RandomHorizontalFlip())
+    train_transform.transforms.append(transforms.ToTensor())
+    train_transform.transforms.append(normalize)
+    test_transform = transforms.Compose([transforms.ToTensor(), normalize])
+
+    train_dataset = DictSet(datasets.CIFAR100(
+        root="/home/dev/data_main/CIFAR100",
+        train=True,
+        transform=train_transform,
+        download=False,
+    ))
+
+    test_dataset = DictSet(datasets.CIFAR100(
+        root="/home/dev/data_main/CIFAR100",
+        train=False,
+        transform=test_transform,
+        download=False,
+    ))
+
+    trainloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=workers,
+        pin_memory=True
+    )
+
+    testloader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=workers,
+        pin_memory=True
+    )
+
+    return trainloader, testloader
+    

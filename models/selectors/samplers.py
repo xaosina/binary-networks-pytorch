@@ -16,7 +16,7 @@ class BinarySoftActivation(torch.autograd.Function):
                 [0]).view_as(input).type_as(input)
         if not (output.sum(1) == 1).all():
             # print((output.sum(1) > 1).sum())
-            print("\nALLERT\nALLERT\nMore than one expert selected!!!!", input[output.sum(1) != 1])
+            print("More than one expert selected!!!!", input[output.sum(1) != 1])
             output = torch.zeros_like(output).scatter_(1, output.argmax(dim=-1).unsqueeze(1), 1.)
             assert (output.sum(1) == 1).all(), "Seriously??"
         return output

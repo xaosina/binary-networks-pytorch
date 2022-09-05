@@ -22,7 +22,7 @@ HARDWARE:
 TRAINING:
   EPOCHS: 90
   BATCH_SIZE: 64
-  GRADIENT_ACCUM: None
+  GRADIENT_ACCUM: 
 
 PROBLEM: classification #segmentation
 
@@ -31,7 +31,7 @@ OPTIMIZER:
     optimizer:
       - ADAM 
       - lr: 0.001
-        # weight_decay: 0
+        # weight_decay: 1e-4
     scheduler: 
       - cosine
       - 

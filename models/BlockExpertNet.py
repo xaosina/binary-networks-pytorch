@@ -116,6 +116,7 @@ class BasicBlock(nn.Module):
             final_output = torch.stack(final_output)
             final_output = torch.sum(gate_x.T[:, :, None, None, None] * final_output, 0)
         else:
+            print("dude...")
             out = EconvList(self.conv1, gate_x, x)
             out = EBnnList(self.bn1, gate_x, out)
             out = EReluList(self.relu1, gate_x, out)

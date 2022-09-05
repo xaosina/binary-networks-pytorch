@@ -100,7 +100,7 @@ def run_experiment(model, get_loaders, target):
         device=env_config.HARDWARE.GPU,
         logger=logger,
         log_training=True,
-        gradient_accum=new_conf.GRADIENT_ACCUM,
+        gradient_accum=new_conf.TRAINING.GRADIENT_ACCUM,
     )
 
     trainer.set_model(model, {"main": filter(lambda p: p.requires_grad, model.parameters())})
