@@ -133,3 +133,5 @@ data/
 
 # Training checkpoints
 checkpoint/
+
+.to_Hide

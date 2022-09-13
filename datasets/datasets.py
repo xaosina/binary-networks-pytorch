@@ -3,8 +3,11 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torchvision import datasets, transforms
-import webdataset as wds
 from .pascal import VOCSegmentation
+try:
+    import webdataset as wds
+except ImportError or ModuleNotFoundError:
+    print("webdataset module not found!")
 
 
 class LengthSet(IterableDataset):

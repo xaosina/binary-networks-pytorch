@@ -249,7 +249,7 @@ class Trainer:
 
                     # backward + optimize only if in training phase
                     if phase.startswith("train"):
-                        if self.gradient_accum is None:
+                        if True or self.gradient_accum is None:
                             self.metrics[phase]["loss"].last_value.backward()
                             self._opt_step(phase)
                             self._opt_zero_grad(phase)

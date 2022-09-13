@@ -36,21 +36,21 @@ model = prepare_binary_model(
 )
 
 seed = 0
-state_path = f"/home/dev/data_main/LOGS/BNN/imagenet/ResNet_RSign_FC/model_best.pth.tar"
-print("Loading state:", state_path)
-state = torch.load(state_path, "cpu")
-model.load_state_dict(state["state_dict"], strict=False)
-with torch.no_grad():
-    for module in model.named_modules():
-        if isinstance(module[1], BasicBlock):
-            m = module[1]
-            print(module[0])
-            for mlist in [m.conv1, m.bn1, m.relu1, m.conv2, m.bn2, m.relu2, m.scales]:
-                for i in range(1, m.num_bases):
-                    if isinstance(mlist, torch.nn.ParameterList):
-                        mlist[i].copy_(mlist[0])
-                    else:
-                        mlist[i].load_state_dict(mlist[0].state_dict())
+# state_path = f"/home/dev/data_main/LOGS/BNN/Group_Expert_React/BlockExpert_RSign_Corrected/0/model_best.pth.tar"
+# print("Loading state:", state_path)
+# state = torch.load(state_path, "cpu")
+# model.load_state_dict(state["state_dict"], strict=False)
+# with torch.no_grad():
+#     for module in model.named_modules():
+#         if isinstance(module[1], BasicBlock):
+#             m = module[1]
+#             print(module[0])
+#             for mlist in [m.conv1, m.bn1, m.relu1, m.conv2, m.bn2, m.relu2, m.scales]:
+#                 for i in range(1, m.num_bases):
+#                     if isinstance(mlist, torch.nn.ParameterList):
+#                         mlist[i].copy_(mlist[0])
+#                     else:
+#                         mlist[i].load_state_dict(mlist[0].state_dict())
 
 
 TARGET = "label"

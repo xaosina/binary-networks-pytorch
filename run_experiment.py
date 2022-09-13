@@ -14,7 +14,7 @@ from trainers.metrics import get_metrics_and_loss
 
 
 
-parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
+parser = argparse.ArgumentParser(description='PyTorch Binary Network Training')
 
 parser.add_argument('--exp_name', metavar='exp_name', default='test',
                     help='experiment name')
