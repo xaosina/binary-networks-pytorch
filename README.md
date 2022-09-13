@@ -46,13 +46,13 @@ from bnn.ops import (
     BasicInputBinarizer,
     XNORWeightBinarizer,
     BasicScaleBinarizer,
-    InputBiasBinarizer # Binarizers for pre/post processing of actiations and weights. 
-)
+    InputBiasBinarizer # corresponds to RSign from ReActNet 
+) # Binarizers for pre/post processing of actiations and weights.
 
 model = resnet18(num_classes=1000, rprelu=False) # model, imported from `/models`
   
 bconfig = BConfig(
-    activation_pre_process=InputBiasBinarizer,
+    activation_pre_process=InputBiasBinarizer, # corresponds to RSign from ReActNet
     activation_post_process=BasicScaleBinarizer,
     weight_pre_process=XNORWeightBinarizer.with_args(compute_alpha=False,
                                                      center_weights=True),
