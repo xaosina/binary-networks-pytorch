@@ -8,24 +8,23 @@ from run_experiment import run_experiment
 from bnn.ops import (
     BasicInputBinarizer,
     XNORWeightBinarizer,
-    BasicScaleBinarizer,
-    InputBiasBinarizer
-    
+    LearnableScale,
+    InputBiasBinarizer,
 )
 
 model = resnet18(num_classes=200, rprelu=False)
 
-#model = models.__dict__["resnet18"](stem_type="basic", num_classes=200)
+# model = models.__dict__["resnet18"](stem_type="basic", num_classes=200)
 
 bconfig = BConfig(
     activation_pre_process=InputBiasBinarizer,
-    activation_post_process=BasicScaleBinarizer,
-    weight_pre_process=XNORWeightBinarizer.with_args(compute_alpha=False,
-                                                     center_weights=True),
+    activation_post_process=LearnableScale,
+    weight_pre_process=XNORWeightBinarizer.with_args(
+        compute_alpha=False, center_weights=True
+    ),
 )
 
-ignore_layers_name = [
-    '$layer+[0-9]\.+[0-9]\.fc$']
+ignore_layers_name = ["$layer+[0-9]\.+[0-9]\.fc$"]
 
 model = prepare_binary_model(
     model,
@@ -47,7 +46,15 @@ with torch.no_grad():
         if isinstance(module[1], BasicBlock):
             m = module[1]
             print(module[0])
-            for mlist in [m.conv1, m.bn1, m.relu1, m.conv2, m.bn2, m.relu2, m.scales]:
+            for mlist in [
+                m.conv1,
+                m.bn1,
+                m.relu1,
+                m.conv2,
+                m.bn2,
+                m.relu2,
+                m.scales,
+            ]:
                 for i in range(1, m.num_bases):
                     if isinstance(mlist, torch.nn.ParameterList):
                         mlist[i].copy_(mlist[0])

@@ -10,26 +10,27 @@ from attr import has
 
 
 def _with_args(cls_or_self: Any, **kwargs: Dict[str, Any]) -> Any:
+
     """
     The _with_args function is a decorator that allows creation of class factories.
     This can be useful when there is a need to create classes with the same constructor arguments,
     but different instances.
     Example:
-    
+
         &gt;&gt;&gt; Foo.with_args = classmethod(_with_args)
         &gt;&gt;&gt; foo_builder = Foo.with_args(a=3, b=4).with_args(answer=42)
         &gt;&gt;&gt; foo_instance2 = foo_builder()  # Instance with args (a=3, b=4, answer=42) is created and cached internally
-    
+
         The _PartialWrapper object returned by _Par._withArgs has the same interface as partial:
-    
+
             * It can be called directly via __call__ or indirectly via __getattr__ for brevity (i.e., it's an instance of callable);
             * Its repr shows what function it wraps; its signature shows its kwarg bindings; and both are configurable for customization purposes.
-    
+
     :param cls_or_self:Any: Pass the class to the function
     :param **kwargs:Dict[str: Pass keyword arguments to the class constructor
     :param Any]: Allow the function to accept both a class and an instance of that class
     :return: A partial object with the __dict__ attribute of the original function
-    
+
     Wrapper that allows creation of class factories.
     This can be useful when there is a need to create classes with the same
     constructor arguments, but different instances.
@@ -41,6 +42,7 @@ def _with_args(cls_or_self: Any, **kwargs: Dict[str, Any]) -> Any:
         >>> foo_instance2 = foo_builder()
         >>> id(foo_instance1) == id(foo_instance2)
         False
+
     """
 
     class _PartialWrapper(object):
@@ -64,9 +66,9 @@ def quant_noise(x, bit, n_type="gaussian"):
     The quant_noise function takes a tensor as input and returns a noisy version of the
     tensor. The noise is added to each element in the tensor by drawing from either a
     uniform or gaussian distribution depending on which type is specified. The function
-    also takes two arguments, bit and n_type, that determine how many bits are used for 
+    also takes two arguments, bit and n_type, that determine how many bits are used for
     quantization and what type of noise will be applied respectively.
-    
+
     :param x: Specify the input tensor
     :param bit: Determine the size of the noise
     :param n_type=&quot;gaussian&quot;: Determine the type of noise to be added
@@ -117,7 +119,10 @@ class SignActivation(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input: torch.Tensor) -> torch.Tensor:
         ctx.save_for_backward(input)
-        return input.sign()
+        x = input.sign()
+        mask = x == 0
+        x = x + 1 * mask.type(torch.float32)
+        return x
 
     @staticmethod
     def backward(ctx, grad_output: torch.Tensor) -> torch.Tensor:
@@ -125,7 +130,6 @@ class SignActivation(torch.autograd.Function):
         grad_input = grad_output.clone()
         grad_input.masked_fill_(input.ge(1) | input.le(-1), 0)
         return grad_input
-
 
 
 class SignActivationStochastic(SignActivation):
@@ -172,8 +176,11 @@ class XNORWeightBinarizer(BinarizerBase):
         center_weights: make the weights zero-mean
     """
 
-    def __init__(self,  module: nn.Module = None,
-        compute_alpha: bool = True, center_weights: bool = False
+    def __init__(
+        self,
+        module: nn.Module = None,
+        compute_alpha: bool = True,
+        center_weights: bool = False,
     ) -> None:
         super(XNORWeightBinarizer, self).__init__()
         self.compute_alpha = compute_alpha
@@ -209,33 +216,35 @@ class XNORWeightBinarizer(BinarizerBase):
         return x
 
 
-class BasicInputBinarizer(BinarizerBase):
+class BasicBinarizer(BinarizerBase):
     r"""Applies the sign function element-wise.
     nn.Module version of SignActivation.
     """
 
-    def __init__(self,  module: nn.Module):
-        super(BasicInputBinarizer, self).__init__()
+    def __init__(self, module: nn.Module):
+        super(BasicBinarizer, self).__init__()
 
     def forward(self, x: torch.Tensor) -> None:
         return SignActivation.apply(x)
 
 
-
 class AdvancedNoisyInputBinarizer(BinarizerBase):
-    """TODO 
+    """TODO
 
     Args:
         BinarizerBase (_type_): _description_
     """
-    def __init__(self, module: nn.Module, derivative_funct=torch.tanh, t: int = 1):
+
+    def __init__(
+        self, module: nn.Module, derivative_funct=torch.tanh, t: int = 1
+    ):
         super(AdvancedNoisyInputBinarizer, self).__init__()
         self.derivative_funct = derivative_funct
         self.t = t
 
     def forward(self, x: torch.tensor) -> torch.Tensor:
         if self.training:
-                x = 0.7 * x + 0.3 * quant_noise(x, 1)
+            x = 0.7 * x + 0.3 * quant_noise(x, 1)
         x = self.derivative_funct(x * self.t)
         with torch.no_grad():
             x = torch.sign(x)
@@ -247,7 +256,7 @@ class StochasticInputBinarizer(BinarizerBase):
     nn.Module version of SignActivation.
     """
 
-    def __init__(self,  module: nn.Module):
+    def __init__(self, module: nn.Module):
         super(StochasticInputBinarizer, self).__init__()
 
     def forward(self, x: torch.Tensor):
@@ -260,7 +269,10 @@ class AdvancedInputBinarizer(BinarizerBase):
     Args:
         BinarizerBase (_type_): _description_
     """
-    def __init__(self, module: nn.Module, derivative_funct=torch.tanh, t: int = 5):
+
+    def __init__(
+        self, module: nn.Module, derivative_funct=torch.tanh, t: int = 5
+    ):
         super(AdvancedInputBinarizer, self).__init__()
         self.derivative_funct = derivative_funct
         self.t = t
@@ -272,14 +284,10 @@ class AdvancedInputBinarizer(BinarizerBase):
         return x
 
 
-class BasicScaleBinarizer(BinarizerBase):
-    """TODO
-
-    Args:
-        BinarizerBase (_type_): _description_
-    """
+class LearnableScale(BinarizerBase):
     def __init__(self, module: nn.Module, shape: List[int] = None) -> None:
-        super(BasicScaleBinarizer, self).__init__()
+        super(LearnableScale, self).__init__()
+
         if isinstance(module, nn.Linear):
             num_channels = module.out_features
         elif isinstance(module, nn.Conv2d):
@@ -310,80 +318,58 @@ class BasicScaleBinarizer(BinarizerBase):
         return "{}".format(list(self.alpha.size()))
 
 
-class XNORScaleBinarizer(BinarizerBase):
-    def __init__(self, module: nn.Module) -> None:
-        super(XNORScaleBinarizer, self).__init__()
-        kernel_size = module.kernel_size
-        self.stride = module.stride
-        self.padding = module.padding
-        self.register_buffer(
-            "fixed_weight",
-            torch.ones(*kernel_size).div_(math.prod(kernel_size)),
-            persistent=False,
-        )
-
-    def forward(
-        self, layer_out: torch.Tensor, layer_in: torch.Tensor
-    ) -> torch.Tensor:
-        x = layer_out
-        scale = torch.mean(dim=1, keepdim=True)
-        scale = F.conv2d(
-            scale, self.fixed_weight, stride=self.stride, padding=self.padding
-        )
-
-        return x.mul_(scale)
-
-
 class InputBiasBinarizer(BinarizerBase):
     def __init__(self, module):
         super(InputBiasBinarizer, self).__init__()
-        
-        # conv layer        
-        if hasattr(module, 'in_channels'):
+
+        # conv layer
+        if hasattr(module, "in_channels"):
             in_channels = module.in_channels
-            self.bias = nn.Parameter(torch.zeros(1, in_channels, 1, 1),
-                                 requires_grad=True)
+            self.bias = nn.Parameter(
+                torch.zeros(1, in_channels, 1, 1), requires_grad=True
+            )
             self.add_bias = True
-        
+
         # linear layer
-        elif hasattr(module, 'in_features'):
+        elif hasattr(module, "in_features"):
             in_features = module.in_features
-            self.bias = None #nn.Parameter(torch.zeros(1, in_features), requires_grad=True)
+            self.bias = None  # nn.Parameter(torch.zeros(1, in_features), requires_grad=True)
             self.add_bias = False
         else:
-            self.bias = None #nn.Parameter(torch.zeros(1),requires_grad=True)
+            self.bias = None  # nn.Parameter(torch.zeros(1),requires_grad=True)
             self.add_bias = False
 
     def forward(self, x: torch.Tensor):
         if self.add_bias:
             x = x + self.bias.expand_as(x)
         return SignActivation.apply(x)
-    
-    
-class BiasPostprocess(BinarizerBase):
+
+
+class LearnableBiasScale(BinarizerBase):
     def __init__(self, module):
-        super(BiasPostprocess, self).__init__()
-        
-        # conv layer        
-        if hasattr(module, 'in_channels'):
+        super(LearnableBiasScale, self).__init__()
+
+        # conv layer
+        if hasattr(module, "in_channels"):
             out_channels = module.out_channels
-            self.bias = nn.Parameter(torch.zeros(1, out_channels, 1, 1),
-                                 requires_grad=True)
+            self.bias = nn.Parameter(
+                torch.zeros(1, out_channels, 1, 1), requires_grad=True
+            )
             self.add_bias = True
             alpha_shape = [1, out_channels] + [1] * (module.weight.dim() - 2)
             self.alpha = nn.Parameter(torch.ones(*alpha_shape))
-            
+
         # linear layer
-        elif hasattr(module, 'out_features'):
+        elif hasattr(module, "out_features"):
             out_channels = module.out_features
-            self.bias = nn.Parameter(torch.zeros(1),requires_grad=True)
+            self.bias = nn.Parameter(torch.zeros(1), requires_grad=True)
             self.add_bias = True
             self.alpha = nn.Parameter(torch.ones(1))
-        
+
         else:
-            self.bias = 0 #nn.Parameter(torch.zeros(1), requires_grad=True)
+            self.bias = 0  # nn.Parameter(torch.zeros(1), requires_grad=True)
             self.add_bias = False
-            
+
     def forward(self, x: torch.Tensor, q: torch.Tensor):
         if self.add_bias:
             x = x + self.bias.expand_as(x)

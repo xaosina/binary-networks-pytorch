@@ -1,37 +1,39 @@
 PROJECT: # looks like it is for code save. will copy each py file from ROOT and DEFAULT_DIRS as subdirs.
-  ROOT: "/home/dev/work_main/2022/binary/bnp/"
-  DEFAULT_DIRS: 
+  ROOT: "/home/dev/work_main/2022/BNN/"
+  DEFAULT_DIRS:
     - "nash_logging" # dirs to copy
     - "bnn"
-TENSORBOARD_SETUP: 
+TENSORBOARD_SETUP:
   FLUSH_EVERY_N_MIN: 1 # most of it useless
   LOG_PARAMS: True
   LOG_PARAMS_EVERY_N_ITERS: 1
 
-HARDWARE: 
+HARDWARE:
   GPU: 2
   WORKERS: 4
   SEED: 1
 
-EXPERIMENT: 
-  DIR: "/home/dev/data_main/LOGS/BNN/binary_exp_time_env/" # where to save data
+EXPERIMENT:
+  DIR: "/home/dev/data_main/LOGS/BNN_egor/" # where to save data
 
 PARAMS:
   gpu: 3
   data: /home/dev/data_main/imagenet_shards/
   loader: wds
 
-TRAINING:
-  EPOCHS: 90
-  BATCH_SIZE: 128
+PROBLEM: classification #segmentation
 
-OPTIMIZER: 
+TRAINING:
+  EPOCHS: 10 #160
+  BATCH_SIZE: 128
+  GRADIENT_ACCUM: false
+
+OPTIMIZER:
   main:
     optimizer:
-      - ADAM 
+      - ADAM
       - lr: 0.001
         # weight_decay: 0
-    scheduler: 
+    scheduler:
       - cosine
-      - 
-      
+      -

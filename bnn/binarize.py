@@ -159,5 +159,6 @@ def prepare_binary_model(
         ignore_layers_name,
     )
     model = swap_modules_by_name(model, modules_to_replace, modules_mapping)
+
     return model
 
